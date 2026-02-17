@@ -49,7 +49,7 @@ export default function Header() {
               <img
                 src="/logo-transparent.png"
                 alt="Classic Car"
-                className="h-10 md:h-12 w-auto"
+                className="h-[12rem] md:h-[14rem] w-auto mt-0.5"
               />
             </Link>
 
@@ -95,7 +95,7 @@ export default function Header() {
               {/* Mobile Hamburger */}
               <button
                 onClick={() => setMobileOpen(!mobileOpen)}
-                className="lg:hidden flex items-center justify-center w-10 h-10 text-cc-white cursor-pointer"
+                className="lg:hidden flex items-center justify-center w-10 h-10 -mt-0.5 text-cc-white cursor-pointer"
                 aria-label="Toggle menu"
               >
                 {mobileOpen ? <X size={22} /> : <Menu size={22} />}

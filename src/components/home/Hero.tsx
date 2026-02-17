@@ -101,9 +101,12 @@ export default function Hero() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.4 }}
           >
-            <h1 className="font-hero text-6xl sm:text-7xl md:text-8xl lg:text-9xl font-bold tracking-wider leading-[0.9]">
-              <span className="text-cc-red block">{t('hero.title1')}</span>
-              <span className="text-cc-white block mt-1">{t('hero.title2')}</span>
+            <h1
+              className="text-6xl sm:text-7xl md:text-8xl lg:text-9xl font-normal tracking-wider leading-[0.9]"
+              style={lang === 'en' ? { fontFamily: "'Orbitron', sans-serif", fontWeight: 500 } : undefined}
+            >
+              <span className="text-[#BF281F] block">{t('hero.title1')}</span>
+              <span className="text-white block mt-1">{t('hero.title2')}</span>
             </h1>
           </motion.div>
 
