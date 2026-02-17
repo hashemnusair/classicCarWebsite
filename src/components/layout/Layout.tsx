@@ -2,7 +2,6 @@ import { useEffect } from 'react'
 import { Outlet, useLocation } from 'react-router-dom'
 import Header from './Header'
 import Footer from './Footer'
-import FloatingCTA from '../ui/FloatingCTA'
 import { useLanguage } from '../../context/LanguageContext'
 
 export default function Layout() {
@@ -27,7 +26,6 @@ export default function Layout() {
       </main>
 
       <Footer />
-      <FloatingCTA />
     </div>
   )
 }

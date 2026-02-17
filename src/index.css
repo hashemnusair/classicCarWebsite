@@ -261,3 +261,12 @@ body {
   );
   pointer-events: none;
 }
+
+/* Gallery thumbnail strips */
+.gallery-scroll {
+  scrollbar-width: none;
+}
+
+.gallery-scroll::-webkit-scrollbar {
+  display: none;
+}

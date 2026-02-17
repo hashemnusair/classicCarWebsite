@@ -1,13 +1,80 @@
-import { useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { motion, useScroll, useTransform } from 'framer-motion'
 import { ArrowRight, ChevronDown } from 'lucide-react'
 import Button from '../ui/Button'
 import { useLanguage } from '../../context/LanguageContext'
+import showroomVideoWebm from '../../../classicCarShowroom.webm'
+import showroomVideoMp4 from '../../../classicCarShowroom.mp4'
+
+const MOBILE_PORTRAIT_QUERY = '(max-width: 767px) and (orientation: portrait)'
+const REDUCED_MOTION_QUERY = '(prefers-reduced-motion: reduce)'
+const HERO_VIDEO_POSTER = '/classicCarShowroom-poster.jpg'
+
+const getMediaMatch = (query: string) =>
+  typeof window !== 'undefined' && window.matchMedia(query).matches
 
 export default function Hero() {
   const { t, lang } = useLanguage()
   const ref = useRef<HTMLDivElement>(null)
+  const videoRef = useRef<HTMLVideoElement>(null)
+  const [isMobilePortrait, setIsMobilePortrait] = useState(() => getMediaMatch(MOBILE_PORTRAIT_QUERY))
+  const [prefersReducedMotion, setPrefersReducedMotion] = useState(() => getMediaMatch(REDUCED_MOTION_QUERY))
+  const [shouldLoadVideo, setShouldLoadVideo] = useState(false)
+  const [isVideoReady, setIsVideoReady] = useState(false)
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+
+    const mobilePortrait = window.matchMedia(MOBILE_PORTRAIT_QUERY)
+    const reducedMotion = window.matchMedia(REDUCED_MOTION_QUERY)
+
+    const syncMatches = () => {
+      setIsMobilePortrait(mobilePortrait.matches)
+      setPrefersReducedMotion(reducedMotion.matches)
+    }
+
+    syncMatches()
+
+    if (typeof mobilePortrait.addEventListener === 'function') {
+      mobilePortrait.addEventListener('change', syncMatches)
+      reducedMotion.addEventListener('change', syncMatches)
+      return () => {
+        mobilePortrait.removeEventListener('change', syncMatches)
+        reducedMotion.removeEventListener('change', syncMatches)
+      }
+    }
+
+    mobilePortrait.addListener(syncMatches)
+    reducedMotion.addListener(syncMatches)
+    return () => {
+      mobilePortrait.removeListener(syncMatches)
+      reducedMotion.removeListener(syncMatches)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!isMobilePortrait || prefersReducedMotion || shouldLoadVideo) return
+    const timeoutId = window.setTimeout(() => setShouldLoadVideo(true), 0)
+    return () => window.clearTimeout(timeoutId)
+  }, [isMobilePortrait, prefersReducedMotion, shouldLoadVideo])
+
+  useEffect(() => {
+    if (!shouldLoadVideo || !videoRef.current || !isMobilePortrait) return
+
+    const heroVideo = videoRef.current
+    heroVideo.load()
+    if (prefersReducedMotion) {
+      heroVideo.pause()
+      return
+    }
+
+    const autoplayAttempt = heroVideo.play()
+    if (autoplayAttempt !== undefined) {
+      autoplayAttempt.catch(() => {})
+    }
+  }, [isMobilePortrait, shouldLoadVideo, prefersReducedMotion])
+
   const { scrollYProgress } = useScroll({
     target: ref,
     offset: ['start start', 'end start'],
@@ -79,17 +146,64 @@ export default function Hero() {
         ))}
       </motion.div>
 
+      {/* Mobile portrait video background band */}
+      {isMobilePortrait && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.55, delay: 0.15 }}
+          className="pointer-events-none absolute inset-x-0 top-16 h-[clamp(220px,34vh,340px)] overflow-hidden md:hidden z-[2]"
+        >
+          <img
+            src={HERO_VIDEO_POSTER}
+            alt=""
+            aria-hidden="true"
+            className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-500 ${isVideoReady ? 'opacity-0' : 'opacity-100'}`}
+            loading="eager"
+            decoding="async"
+            fetchPriority="high"
+          />
+          <video
+            ref={videoRef}
+            className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-500 ${isVideoReady ? 'opacity-100' : 'opacity-0'}`}
+            poster={HERO_VIDEO_POSTER}
+            muted
+            loop
+            playsInline
+            preload={shouldLoadVideo ? 'metadata' : 'none'}
+            autoPlay={shouldLoadVideo && !prefersReducedMotion}
+            onCanPlay={() => setIsVideoReady(true)}
+            onLoadedData={() => setIsVideoReady(true)}
+            aria-hidden="true"
+            tabIndex={-1}
+          >
+            {shouldLoadVideo && (
+              <>
+                <source src={showroomVideoWebm} type="video/webm" />
+                <source src={showroomVideoMp4} type="video/mp4" />
+              </>
+            )}
+          </video>
+          <div className="absolute inset-0 bg-gradient-to-b from-cc-black/45 via-transparent to-cc-black/80" />
+        </motion.div>
+      )}
+
       {/* Main content area - grows to fill space above stats */}
-      <motion.div style={{ opacity, y }} className="relative z-10 flex-1 flex items-center max-w-7xl mx-auto w-full px-4 md:px-6 pt-20">
-        <div className="max-w-3xl">
+      <motion.div
+        style={{ opacity, y }}
+        className={`relative z-10 flex-1 flex items-start md:items-center max-w-7xl mx-auto w-full px-4 md:px-6 ${
+          isMobilePortrait ? 'pt-[calc(4rem+35vh)]' : 'pt-24'
+        } md:pt-20 pb-10 md:pb-0`}
+      >
+        <div className="max-w-3xl w-full">
           {/* Tagline */}
           <motion.div
             initial={{ opacity: 0, x: lang === 'ar' ? 30 : -30 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.7, delay: 0.2 }}
-            className="flex items-center gap-3 mb-6"
+            className="flex items-center gap-3 mb-5 md:mb-6"
           >
-            <span className="block w-10 h-[2px] bg-cc-red" />
+            <span className="block w-9 md:w-10 h-[2px] bg-cc-red" />
             <span className="text-cc-red text-xs tracking-[0.3em] uppercase font-medium">
               {t('hero.tagline')}
             </span>
@@ -102,7 +216,7 @@ export default function Hero() {
             transition={{ duration: 0.8, delay: 0.4 }}
           >
             <h1
-              className="text-6xl sm:text-7xl md:text-8xl lg:text-9xl font-normal tracking-wider leading-[0.9]"
+              className="text-[3.6rem] leading-[0.88] sm:text-7xl md:text-8xl lg:text-9xl font-normal tracking-wider"
               style={lang === 'en' ? { fontFamily: "'Orbitron', sans-serif", fontWeight: 500 } : undefined}
             >
               <span className="text-[#BF281F] block">{t('hero.title1')}</span>
@@ -115,7 +229,7 @@ export default function Hero() {
             initial={{ width: 0 }}
             animate={{ width: 80 }}
             transition={{ duration: 0.8, delay: 0.8 }}
-            className="h-[3px] bg-gradient-to-r from-cc-red to-transparent mt-6"
+            className="h-[3px] bg-gradient-to-r from-cc-red to-transparent mt-5 md:mt-6"
           />
 
           {/* Subtitle */}
@@ -123,7 +237,7 @@ export default function Hero() {
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7, delay: 0.7 }}
-            className="mt-5 text-cc-gray-300 text-base md:text-lg leading-relaxed max-w-lg"
+            className="hidden md:block mt-4 md:mt-5 text-cc-gray-300 text-[1.04rem] md:text-lg leading-relaxed max-w-lg"
           >
             {t('hero.subtitle')}
           </motion.p>
@@ -133,7 +247,7 @@ export default function Hero() {
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7, delay: 0.9 }}
-            className="flex flex-wrap items-center gap-4 mt-8"
+            className="flex flex-wrap items-center gap-3 md:gap-4 mt-6 md:mt-8"
           >
             <Link to="/inventory">
               <Button

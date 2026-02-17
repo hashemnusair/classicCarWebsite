@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Menu, X, Globe } from 'lucide-react'
+import { Globe } from 'lucide-react'
 import { useLanguage } from '../../context/LanguageContext'
 
 const navLinks = [
@@ -95,10 +95,25 @@ export default function Header() {
               {/* Mobile Hamburger */}
               <button
                 onClick={() => setMobileOpen(!mobileOpen)}
-                className="lg:hidden flex items-center justify-center w-10 h-10 -mt-0.5 text-cc-white cursor-pointer"
-                aria-label="Toggle menu"
+                className="lg:hidden relative flex items-center justify-center w-10 h-10 -mt-0.5 text-cc-white cursor-pointer"
+                aria-expanded={mobileOpen}
+                aria-label={mobileOpen ? 'Close menu' : 'Open menu'}
               >
-                {mobileOpen ? <X size={22} /> : <Menu size={22} />}
+                <span
+                  className={`absolute h-[2px] w-5 rounded-full bg-current transform-gpu transition-all duration-300 [transition-timing-function:cubic-bezier(.5,.85,.25,1.1)] ${
+                    mobileOpen ? 'translate-y-0 rotate-45' : '-translate-y-[7px]'
+                  }`}
+                />
+                <span
+                  className={`absolute h-[2px] w-5 rounded-full bg-current transform-gpu transition-all duration-300 [transition-timing-function:cubic-bezier(.5,.85,.25,1.1)] ${
+                    mobileOpen ? 'opacity-0 scale-x-0' : 'opacity-100 scale-x-100'
+                  }`}
+                />
+                <span
+                  className={`absolute h-[2px] w-5 rounded-full bg-current transform-gpu transition-all duration-300 [transition-timing-function:cubic-bezier(.5,.85,.25,1.1)] ${
+                    mobileOpen ? 'translate-y-0 -rotate-45' : 'translate-y-[7px]'
+                  }`}
+                />
               </button>
             </div>
           </div>
