@@ -1,0 +1,263 @@
+@import url('https://fonts.googleapis.com/css2?family=Michroma&family=Oxanium:wght@200..800&family=Outfit:wght@300;400;500;600;700&family=Tajawal:wght@300;400;500;700;800&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-display: 'Michroma', sans-serif;
+  --font-hero: 'Oxanium', sans-serif;
+  --font-body: 'Outfit', sans-serif;
+  --font-arabic: 'Tajawal', sans-serif;
+
+  --color-cc-black: #050505;
+  --color-cc-black-900: #0A0A0A;
+  --color-cc-black-800: #111111;
+  --color-cc-black-700: #1A1A1A;
+  --color-cc-black-600: #222222;
+  --color-cc-black-500: #2A2A2A;
+
+  --color-cc-red: #C8102E;
+  --color-cc-red-light: #E63946;
+  --color-cc-red-dark: #8B0000;
+  --color-cc-red-glow: rgba(200, 16, 46, 0.3);
+  --color-cc-red-subtle: rgba(200, 16, 46, 0.08);
+
+  --color-cc-white: #F5F5F5;
+  --color-cc-gray-100: #E0E0E0;
+  --color-cc-gray-200: #BDBDBD;
+  --color-cc-gray-300: #999999;
+  --color-cc-gray-400: #666666;
+  --color-cc-gray-500: #444444;
+}
+
+/* ───── Base ───── */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-cc-black-500) transparent;
+}
+
+html {
+  scroll-behavior: smooth;
+  background-color: var(--color-cc-black);
+  overflow-x: hidden;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-body);
+  background-color: var(--color-cc-black);
+  color: var(--color-cc-white);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+  min-height: 100vh;
+}
+
+[dir="rtl"] body,
+[dir="rtl"] input,
+[dir="rtl"] textarea,
+[dir="rtl"] select,
+[dir="rtl"] button {
+  font-family: var(--font-arabic);
+}
+
+::selection {
+  background-color: var(--color-cc-red);
+  color: white;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-cc-black-500);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-cc-gray-400);
+}
+
+/* ───── Noise texture overlay ───── */
+.noise-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  pointer-events: none;
+  opacity: 0.02;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-size: 256px;
+}
+
+/* ───── Racing stripe accent ───── */
+.racing-stripe {
+  position: relative;
+  overflow: hidden;
+}
+
+.racing-stripe::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 3px;
+  height: 100%;
+  background: var(--color-cc-red);
+}
+
+[dir="rtl"] .racing-stripe::before {
+  left: auto;
+  right: 0;
+}
+
+/* ───── Glass card effect ───── */
+.glass-card {
+  background: linear-gradient(
+    145deg,
+    rgba(26, 26, 26, 0.9),
+    rgba(17, 17, 17, 0.7)
+  );
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.glass-card:hover {
+  border-color: rgba(200, 16, 46, 0.2);
+  box-shadow: 0 0 30px rgba(200, 16, 46, 0.05);
+}
+
+/* ───── Red glow effect ───── */
+.red-glow {
+  box-shadow: 0 0 40px var(--color-cc-red-glow), 0 0 80px rgba(200, 16, 46, 0.08);
+}
+
+/* ───── Gradient border ───── */
+.gradient-border {
+  position: relative;
+  background: var(--color-cc-black-700);
+}
+
+.gradient-border::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  padding: 1px;
+  background: linear-gradient(
+    135deg,
+    var(--color-cc-red),
+    transparent 40%,
+    transparent 60%,
+    rgba(200, 16, 46, 0.3)
+  );
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask-composite: exclude;
+  border-radius: inherit;
+  pointer-events: none;
+}
+
+/* ───── Section divider ───── */
+.section-divider {
+  height: 1px;
+  background: linear-gradient(
+    to right,
+    transparent,
+    var(--color-cc-black-500) 20%,
+    var(--color-cc-red) 50%,
+    var(--color-cc-black-500) 80%,
+    transparent
+  );
+}
+
+/* ───── Grid pattern background ───── */
+.grid-pattern {
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.015) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.015) 1px, transparent 1px);
+  background-size: 60px 60px;
+}
+
+/* ───── Text gradient ───── */
+.text-gradient-red {
+  background: linear-gradient(135deg, var(--color-cc-red-light), var(--color-cc-red));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ───── Car tag styles ───── */
+.car-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  border-radius: 2px;
+  background: var(--color-cc-red-subtle);
+  color: var(--color-cc-red-light);
+  border: 1px solid rgba(200, 16, 46, 0.12);
+}
+
+/* ───── Custom focus styles ───── */
+*:focus-visible {
+  outline: 2px solid var(--color-cc-red);
+  outline-offset: 2px;
+}
+
+/* ───── Animations ───── */
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.shimmer {
+  background: linear-gradient(
+    90deg,
+    var(--color-cc-black-700) 25%,
+    var(--color-cc-black-600) 50%,
+    var(--color-cc-black-700) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 2s infinite;
+}
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(1.5); }
+}
+
+.pulse-dot {
+  animation: pulse-dot 2s ease-in-out infinite;
+}
+
+@keyframes scan-line {
+  0% { top: -10%; }
+  100% { top: 110%; }
+}
+
+.page-enter {
+  animation: page-fade-in 0.4s ease-out;
+}
+
+@keyframes page-fade-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Car image gradient overlay */
+.car-image-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    transparent 40%,
+    rgba(5, 5, 5, 0.9) 100%
+  );
+  pointer-events: none;
+}
