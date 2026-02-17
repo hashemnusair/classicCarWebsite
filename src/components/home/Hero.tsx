@@ -14,12 +14,31 @@ const HERO_VIDEO_POSTER = '/classicCarShowroom-poster.jpg'
 const getMediaMatch = (query: string) =>
   typeof window !== 'undefined' && window.matchMedia(query).matches
 
+const getConnection = () =>
+  (
+    navigator as Navigator & {
+      connection?: {
+        saveData?: boolean
+        effectiveType?: string
+      }
+    }
+  ).connection
+
+const canLoadMobileVideo = () => {
+  if (typeof navigator === 'undefined') return false
+  const connection = getConnection()
+  if (!connection) return true
+  if (connection.saveData) return false
+  return !['slow-2g', '2g', '3g'].includes(connection.effectiveType ?? '')
+}
+
 export default function Hero() {
   const { t, lang } = useLanguage()
   const ref = useRef<HTMLDivElement>(null)
   const videoRef = useRef<HTMLVideoElement>(null)
   const [isMobilePortrait, setIsMobilePortrait] = useState(() => getMediaMatch(MOBILE_PORTRAIT_QUERY))
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(() => getMediaMatch(REDUCED_MOTION_QUERY))
+  const [canUseMobileVideo, setCanUseMobileVideo] = useState(() => canLoadMobileVideo())
   const [shouldLoadVideo, setShouldLoadVideo] = useState(false)
   const [isVideoReady, setIsVideoReady] = useState(false)
 
@@ -32,6 +51,7 @@ export default function Hero() {
     const syncMatches = () => {
       setIsMobilePortrait(mobilePortrait.matches)
       setPrefersReducedMotion(reducedMotion.matches)
+      setCanUseMobileVideo(canLoadMobileVideo())
     }
 
     syncMatches()
@@ -54,10 +74,10 @@ export default function Hero() {
   }, [])
 
   useEffect(() => {
-    if (!isMobilePortrait || prefersReducedMotion || shouldLoadVideo) return
-    const timeoutId = window.setTimeout(() => setShouldLoadVideo(true), 0)
+    if (!isMobilePortrait || prefersReducedMotion || !canUseMobileVideo || shouldLoadVideo) return
+    const timeoutId = window.setTimeout(() => setShouldLoadVideo(true), 1400)
     return () => window.clearTimeout(timeoutId)
-  }, [isMobilePortrait, prefersReducedMotion, shouldLoadVideo])
+  }, [isMobilePortrait, prefersReducedMotion, canUseMobileVideo, shouldLoadVideo])
 
   useEffect(() => {
     if (!shouldLoadVideo || !videoRef.current || !isMobilePortrait) return
@@ -171,16 +191,16 @@ export default function Hero() {
             loop
             playsInline
             preload={shouldLoadVideo ? 'metadata' : 'none'}
-            autoPlay={shouldLoadVideo && !prefersReducedMotion}
+            autoPlay={shouldLoadVideo && !prefersReducedMotion && canUseMobileVideo}
             onCanPlay={() => setIsVideoReady(true)}
             onLoadedData={() => setIsVideoReady(true)}
             aria-hidden="true"
             tabIndex={-1}
           >
-            {shouldLoadVideo && (
+            {shouldLoadVideo && canUseMobileVideo && (
               <>
-                <source src={showroomVideoWebm} type="video/webm" />
                 <source src={showroomVideoMp4} type="video/mp4" />
+                <source src={showroomVideoWebm} type="video/webm" />
               </>
             )}
           </video>

@@ -131,6 +131,25 @@ body {
   box-shadow: 0 0 30px rgba(200, 16, 46, 0.05);
 }
 
+@media (max-width: 1024px) {
+  .noise-overlay {
+    display: none;
+  }
+
+  .glass-card {
+    backdrop-filter: none;
+    background: linear-gradient(
+      145deg,
+      rgba(26, 26, 26, 0.98),
+      rgba(17, 17, 17, 0.95)
+    );
+  }
+
+  .glass-card:hover {
+    box-shadow: none;
+  }
+}
+
 /* ───── Red glow effect ───── */
 .red-glow {
   box-shadow: 0 0 40px var(--color-cc-red-glow), 0 0 80px rgba(200, 16, 46, 0.08);
@@ -243,6 +262,12 @@ body {
 
 .page-enter {
   animation: page-fade-in 0.4s ease-out;
+}
+
+@media (max-width: 767px) {
+  .page-enter {
+    animation: none;
+  }
 }
 
 @keyframes page-fade-in {

@@ -25,10 +25,6 @@ export default function Header() {
   }, [])
 
   useEffect(() => {
-    setMobileOpen(false)
-  }, [location.pathname])
-
-  useEffect(() => {
     document.body.style.overflow = mobileOpen ? 'hidden' : ''
     return () => { document.body.style.overflow = '' }
   }, [mobileOpen])
@@ -142,6 +138,7 @@ export default function Header() {
                   >
                     <Link
                       to={link.path}
+                      onClick={() => setMobileOpen(false)}
                       className={`block px-8 py-4 text-center font-display text-lg tracking-[0.2em] uppercase transition-colors ${
                         isActive ? 'text-cc-red-light' : 'text-cc-gray-200'
                       }`}
