@@ -253,19 +253,80 @@ export default function Hero() {
   const y = useTransform(scrollYProgress, [0, 1], [0, 150])
   const scale = useTransform(scrollYProgress, [0, 1], [1, 1.1])
   const carX = useTransform(scrollYProgress, [0, 1], [0, 100])
+  const mobileOpacity = useTransform(scrollYProgress, [0, 0.5], [1, 0])
+  const mobileY = useTransform(scrollYProgress, [0, 0.6], [0, 60])
+  const mobileScale = useTransform(scrollYProgress, [0, 1], [1, 1.05])
 
+  const shouldAnimateMobile = isMobilePortrait && !prefersReducedMotion
   const isVideoPlaying = playbackState === 'playing'
 
   return (
     <section ref={ref} className="relative h-screen min-h-[700px] flex flex-col overflow-hidden">
       {/* Background */}
-      <motion.div style={shouldAnimateDesktop ? { scale } : undefined} className="absolute inset-0">
+      <motion.div
+        style={
+          shouldAnimateDesktop ? { scale }
+          : shouldAnimateMobile ? { scale: mobileScale }
+          : undefined
+        }
+        className="absolute inset-0"
+      >
         <div className="absolute inset-0 bg-gradient-to-br from-cc-black via-cc-black-800 to-cc-black" />
         <div className="absolute -top-1/4 -right-1/4 w-[800px] h-[800px] rounded-full bg-cc-red/[0.04] blur-[150px]" />
         <div className="absolute -bottom-1/4 -left-1/4 w-[600px] h-[600px] rounded-full bg-cc-red/[0.02] blur-[120px]" />
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[1000px] h-[400px] bg-cc-red/[0.01] blur-[200px] rounded-full" />
         <div className="absolute inset-0 grid-pattern opacity-40" />
+
+        {/* Full-bleed mobile video background */}
+        {isMobilePortrait && (
+          <div className="absolute inset-0 md:hidden z-[1]">
+            <img
+              src={HERO_VIDEO_POSTER}
+              alt=""
+              aria-hidden="true"
+              className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-300 ${isVideoPlaying ? 'opacity-0' : 'opacity-100'}`}
+              loading="eager"
+              decoding="async"
+              fetchPriority="high"
+            />
+            <video
+              ref={videoRef}
+              className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-300 ${isVideoPlaying ? 'opacity-100' : 'opacity-0'}`}
+              poster={HERO_VIDEO_POSTER}
+              muted
+              loop
+              playsInline
+              autoPlay
+              preload={shouldAttemptVideo ? (preferMp4First ? 'auto' : 'metadata') : 'none'}
+              aria-hidden="true"
+              tabIndex={-1}
+            >
+              {shouldAttemptVideo && playbackState !== 'fallback' && (
+                preferMp4First ? (
+                  <source src={HERO_VIDEO_MP4} type="video/mp4" />
+                ) : (
+                  <>
+                    <source src={HERO_VIDEO_WEBM} type="video/webm" />
+                    <source src={HERO_VIDEO_MP4} type="video/mp4" />
+                  </>
+                )
+              )}
+            </video>
+          </div>
+        )}
       </motion.div>
+
+      {/* Mobile video gradient overlays */}
+      {isMobilePortrait && (
+        <>
+          {/* Top vignette — protects navbar area */}
+          <div className="absolute inset-0 bg-gradient-to-b from-cc-black/70 via-cc-black/20 to-transparent pointer-events-none z-[2] md:hidden" />
+          {/* Bottom anchor — strong fade for text readability */}
+          <div className="absolute inset-0 bg-gradient-to-t from-cc-black via-cc-black/60 to-transparent pointer-events-none z-[2] md:hidden" />
+          {/* Subtle overall tint — desaturates video, unifies look */}
+          <div className="absolute inset-0 bg-cc-black/25 pointer-events-none z-[2] md:hidden" />
+        </>
+      )}
 
       {/* Diagonal racing accent lines */}
       <div className="absolute top-0 right-[15%] w-[1px] h-full bg-gradient-to-b from-transparent via-cc-red/20 to-transparent transform rotate-[15deg] origin-top hidden lg:block" />
@@ -320,53 +381,18 @@ export default function Hero() {
         </motion.div>
       )}
 
-      {/* Mobile portrait video background band */}
-      {isMobilePortrait && (
-        <div className="pointer-events-none absolute inset-x-0 top-16 h-[clamp(220px,34vh,340px)] overflow-hidden md:hidden z-[2]">
-          <img
-            src={HERO_VIDEO_POSTER}
-            alt=""
-            aria-hidden="true"
-            className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-300 ${isVideoPlaying ? 'opacity-0' : 'opacity-100'}`}
-            loading="eager"
-            decoding="async"
-            fetchPriority="high"
-          />
-
-          <video
-            ref={videoRef}
-            className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-300 ${isVideoPlaying ? 'opacity-100' : 'opacity-0'}`}
-            poster={HERO_VIDEO_POSTER}
-            muted
-            loop
-            playsInline
-            autoPlay
-            preload={shouldAttemptVideo ? (preferMp4First ? 'auto' : 'metadata') : 'none'}
-            aria-hidden="true"
-            tabIndex={-1}
-          >
-            {shouldAttemptVideo && playbackState !== 'fallback' && (
-              preferMp4First ? (
-                <source src={HERO_VIDEO_MP4} type="video/mp4" />
-              ) : (
-                <>
-                  <source src={HERO_VIDEO_WEBM} type="video/webm" />
-                  <source src={HERO_VIDEO_MP4} type="video/mp4" />
-                </>
-              )
-            )}
-          </video>
-
-          <div className="absolute inset-0 bg-gradient-to-b from-cc-black/45 via-transparent to-cc-black/80" />
-        </div>
-      )}
-
       {/* Main content area - grows to fill space above stats */}
       <motion.div
-        style={shouldAnimateDesktop ? { opacity, y } : undefined}
-        className={`relative z-10 flex-1 flex items-start md:items-center max-w-7xl mx-auto w-full px-4 md:px-6 ${
-          isMobilePortrait ? 'pt-[calc(4rem+clamp(220px,34vh,340px)+1.5rem)]' : 'pt-24'
-        } md:pt-20 pb-10 md:pb-0`}
+        style={
+          shouldAnimateDesktop ? { opacity, y }
+          : shouldAnimateMobile ? { opacity: mobileOpacity, y: mobileY }
+          : undefined
+        }
+        className={`relative z-10 flex-1 flex max-w-7xl mx-auto w-full px-4 md:px-6 ${
+          isMobilePortrait
+            ? 'pt-20 pb-8 items-end'
+            : 'pt-24 items-center'
+        } md:items-center md:pt-20 pb-10 md:pb-0`}
       >
         <div className="max-w-3xl w-full">
           {/* Tagline */}
@@ -374,7 +400,7 @@ export default function Hero() {
             initial={shouldAnimateDesktop ? { opacity: 0, x: lang === 'ar' ? 30 : -30 } : undefined}
             animate={shouldAnimateDesktop ? { opacity: 1, x: 0 } : undefined}
             transition={shouldAnimateDesktop ? { duration: 0.7, delay: 0.2 } : undefined}
-            className="flex items-center gap-3 mb-5 md:mb-6"
+            className="flex items-center gap-3 mb-3 md:mb-6"
           >
             <span className="block w-9 md:w-10 h-[2px] bg-cc-red" />
             <span className="text-cc-red text-xs tracking-[0.3em] uppercase font-medium">
@@ -389,7 +415,7 @@ export default function Hero() {
             transition={shouldAnimateDesktop ? { duration: 0.8, delay: 0.4 } : undefined}
           >
             <h1
-              className="text-[3.6rem] leading-[0.88] sm:text-7xl md:text-8xl lg:text-9xl font-normal tracking-wider"
+              className="text-[3rem] leading-[0.88] sm:text-7xl md:text-8xl lg:text-9xl font-normal tracking-wider"
               style={lang === 'en' ? { fontFamily: "'Orbitron', sans-serif", fontWeight: 500 } : undefined}
             >
               <span className="text-[#BF281F] block">{t('hero.title1')}</span>
@@ -402,7 +428,7 @@ export default function Hero() {
             initial={shouldAnimateDesktop ? { width: 0 } : undefined}
             animate={shouldAnimateDesktop ? { width: 80 } : undefined}
             transition={shouldAnimateDesktop ? { duration: 0.8, delay: 0.8 } : undefined}
-            className="h-[3px] bg-gradient-to-r from-cc-red to-transparent mt-5 md:mt-6"
+            className={`h-[3px] from-cc-red to-transparent mt-4 md:mt-6 ${lang === 'ar' ? 'bg-gradient-to-l' : 'bg-gradient-to-r'}`}
           />
 
           {/* Subtitle */}
@@ -420,7 +446,7 @@ export default function Hero() {
             initial={shouldAnimateDesktop ? { opacity: 0, y: 30 } : undefined}
             animate={shouldAnimateDesktop ? { opacity: 1, y: 0 } : undefined}
             transition={shouldAnimateDesktop ? { duration: 0.7, delay: 0.9 } : undefined}
-            className="flex flex-wrap items-center gap-3 md:gap-4 mt-6 md:mt-8"
+            className="flex flex-wrap items-center gap-3 md:gap-4 mt-5 md:mt-8"
           >
             <Link to="/inventory">
               <Button
