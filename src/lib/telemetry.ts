@@ -11,7 +11,13 @@ declare global {
 export function trackTelemetry(eventName: string, payload: TelemetryPayload = {}) {
   if (typeof window === 'undefined') return
 
-  window.dispatchEvent(new CustomEvent(`classiccar:${eventName}`, { detail: payload }))
+  try {
+    if (typeof CustomEvent === 'function') {
+      window.dispatchEvent(new CustomEvent(`classiccar:${eventName}`, { detail: payload }))
+    }
+  } catch {
+    // Ignore event dispatch failures on restrictive browsers.
+  }
 
   if (typeof window.va?.track === 'function') {
     try {

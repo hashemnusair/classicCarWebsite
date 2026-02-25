@@ -9,7 +9,8 @@ export default function Layout() {
   const { dir } = useLanguage()
 
   useEffect(() => {
-    window.scrollTo({ top: 0, behavior: 'instant' })
+    // Safari does not support 'instant' and can throw on invalid behavior values.
+    window.scrollTo({ top: 0, behavior: 'auto' })
   }, [location.pathname])
 
   return (

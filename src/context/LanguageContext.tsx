@@ -11,18 +11,30 @@ interface LanguageContextType {
 
 const LanguageContext = createContext<LanguageContextType | null>(null)
 
+function getSavedLanguage(): Language {
+  if (typeof window === 'undefined') return 'en'
+
+  try {
+    const saved = window.localStorage.getItem('classiccar-lang')
+    return saved === 'ar' ? 'ar' : 'en'
+  } catch {
+    return 'en'
+  }
+}
+
 export function LanguageProvider({ children }: { children: React.ReactNode }) {
-  const [lang, setLang] = useState<Language>(() => {
-    const saved = localStorage.getItem('classiccar-lang')
-    return (saved === 'ar' ? 'ar' : 'en') as Language
-  })
+  const [lang, setLang] = useState<Language>(() => getSavedLanguage())
 
   const dir = lang === 'ar' ? 'rtl' : 'ltr'
 
   const toggleLanguage = useCallback(() => {
     setLang(prev => {
       const next = prev === 'en' ? 'ar' : 'en'
-      localStorage.setItem('classiccar-lang', next)
+      try {
+        window.localStorage.setItem('classiccar-lang', next)
+      } catch {
+        // Ignore storage failures (e.g., Safari privacy mode).
+      }
       return next
     })
   }, [])
