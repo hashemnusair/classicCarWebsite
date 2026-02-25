@@ -4,12 +4,12 @@ import { motion, useScroll, useTransform } from 'framer-motion'
 import { ArrowRight, ChevronDown } from 'lucide-react'
 import Button from '../ui/Button'
 import { useLanguage } from '../../context/LanguageContext'
-import showroomVideoWebm from '../../../classicCarShowroom.webm'
-import showroomVideoMp4 from '../../../classicCarShowroom.mp4'
 
 const MOBILE_PORTRAIT_QUERY = '(max-width: 767px) and (orientation: portrait)'
 const REDUCED_MOTION_QUERY = '(prefers-reduced-motion: reduce)'
-const HERO_VIDEO_POSTER = '/classicCarShowroom-poster.jpg'
+const HERO_VIDEO_WEBM = '/media/hero/hero-mobile.webm'
+const HERO_VIDEO_MP4 = '/media/hero/hero-mobile.mp4'
+const HERO_VIDEO_POSTER = '/media/hero/hero-mobile-poster.jpg'
 
 const getMediaMatch = (query: string) =>
   typeof window !== 'undefined' && window.matchMedia(query).matches
@@ -190,7 +190,7 @@ export default function Hero() {
             muted
             loop
             playsInline
-            preload={shouldLoadVideo ? 'metadata' : 'none'}
+            preload="metadata"
             autoPlay={shouldLoadVideo && !prefersReducedMotion && canUseMobileVideo}
             onCanPlay={() => setIsVideoReady(true)}
             onLoadedData={() => setIsVideoReady(true)}
@@ -199,8 +199,8 @@ export default function Hero() {
           >
             {shouldLoadVideo && canUseMobileVideo && (
               <>
-                <source src={showroomVideoMp4} type="video/mp4" />
-                <source src={showroomVideoWebm} type="video/webm" />
+                <source src={HERO_VIDEO_WEBM} type="video/webm" />
+                <source src={HERO_VIDEO_MP4} type="video/mp4" />
               </>
             )}
           </video>
