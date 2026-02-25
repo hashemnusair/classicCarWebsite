@@ -208,6 +208,8 @@ export default function Hero() {
     heroVideo.muted = true
     heroVideo.loop = true
     heroVideo.autoplay = true
+    heroVideo.playsInline = true
+    heroVideo.preload = preferMp4First ? 'auto' : 'metadata'
     heroVideo.setAttribute('playsinline', '')
     heroVideo.setAttribute('webkit-playsinline', '')
     heroVideo.load()
@@ -235,7 +237,7 @@ export default function Hero() {
       heroVideo.removeEventListener('loadedmetadata', handleLoadedMetadata)
       heroVideo.removeEventListener('canplay', handleCanPlay)
     }
-  }, [moveToFallback, playbackState, shouldAttemptVideo, sourceOrder])
+  }, [moveToFallback, playbackState, preferMp4First, shouldAttemptVideo, sourceOrder])
 
   useEffect(() => {
     if (playbackState !== 'fallback' || !videoRef.current) return
@@ -339,16 +341,13 @@ export default function Hero() {
             loop
             playsInline
             autoPlay
-            preload={shouldAttemptVideo ? 'metadata' : 'none'}
+            preload={shouldAttemptVideo ? (preferMp4First ? 'auto' : 'metadata') : 'none'}
             aria-hidden="true"
             tabIndex={-1}
           >
             {shouldAttemptVideo && playbackState !== 'fallback' && (
               preferMp4First ? (
-                <>
-                  <source src={HERO_VIDEO_MP4} type="video/mp4" />
-                  <source src={HERO_VIDEO_WEBM} type="video/webm" />
-                </>
+                <source src={HERO_VIDEO_MP4} type="video/mp4" />
               ) : (
                 <>
                   <source src={HERO_VIDEO_WEBM} type="video/webm" />

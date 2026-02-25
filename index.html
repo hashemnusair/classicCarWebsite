@@ -15,6 +15,59 @@
     <link rel="preload" as="font" type="font/woff2" href="/fonts/outfit-latin-400-700.woff2" crossorigin />
     <link rel="preload" as="font" type="font/woff2" href="/fonts/michroma-latin-400.woff2" crossorigin />
     <link rel="preload" as="font" type="font/woff2" href="/fonts/orbitron-latin-500.woff2" crossorigin />
+    <script>
+      (function recoverFromStaleChunks() {
+        var RETRY_KEY = 'classiccar-chunk-retry'
+
+        function hasRetried() {
+          try {
+            return sessionStorage.getItem(RETRY_KEY) === '1'
+          } catch (error) {
+            return false
+          }
+        }
+
+        function markRetried() {
+          try {
+            sessionStorage.setItem(RETRY_KEY, '1')
+          } catch (error) {
+            // Ignore storage failures.
+          }
+        }
+
+        function forceRefresh(reason) {
+          if (hasRetried()) return
+          markRetried()
+
+          var url = new URL(window.location.href)
+          url.searchParams.set('_cc_reload', Date.now().toString())
+          url.searchParams.set('_cc_reason', reason)
+          window.location.replace(url.toString())
+        }
+
+        window.addEventListener(
+          'error',
+          function (event) {
+            var target = event.target
+            if (!target || !(target instanceof HTMLElement)) return
+            if (target.tagName === 'SCRIPT' || target.tagName === 'LINK') {
+              forceRefresh('asset-load-failed')
+            }
+          },
+          true,
+        )
+
+        window.addEventListener('unhandledrejection', function (event) {
+          var message = String((event && event.reason && event.reason.message) || event.reason || '')
+          if (
+            message.indexOf('Failed to fetch dynamically imported module') !== -1 ||
+            message.indexOf('Importing a module script failed') !== -1
+          ) {
+            forceRefresh('module-load-failed')
+          }
+        })
+      })()
+    </script>
     <meta name="description" content="Classic Car — Jordan's premier destination for luxury and performance vehicles. Browse our curated collection of premium automobiles." />
     <title>Classic Car — Premium Automotive Excellence</title>
   </head>
