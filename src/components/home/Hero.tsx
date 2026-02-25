@@ -1,15 +1,24 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { motion, useScroll, useTransform } from 'framer-motion'
 import { ArrowRight, ChevronDown } from 'lucide-react'
 import Button from '../ui/Button'
 import { useLanguage } from '../../context/LanguageContext'
+import {
+  HERO_AUTOPLAY_ATTEMPT_WINDOW_MS,
+  HERO_AUTOPLAY_RETRY_INTERVAL_MS,
+  HERO_PERFORMANCE_RECOVERY_ENABLED,
+  MOBILE_PORTRAIT_QUERY,
+  REDUCED_MOTION_QUERY,
+} from '../../config/performance'
+import { useIsMobilePerformanceMode } from '../../hooks/useIsMobilePerformanceMode'
+import { trackTelemetry } from '../../lib/telemetry'
 
-const MOBILE_PORTRAIT_QUERY = '(max-width: 767px) and (orientation: portrait)'
-const REDUCED_MOTION_QUERY = '(prefers-reduced-motion: reduce)'
-const HERO_VIDEO_WEBM = '/media/hero/hero-mobile.webm'
-const HERO_VIDEO_MP4 = '/media/hero/hero-mobile.mp4'
-const HERO_VIDEO_POSTER = '/media/hero/hero-mobile-poster.jpg'
+const HERO_VIDEO_WEBM = '/media/hero/hero-mobile.9142e33d.webm'
+const HERO_VIDEO_MP4 = '/media/hero/hero-mobile.eff86f8c.mp4'
+const HERO_VIDEO_POSTER = '/media/hero/hero-mobile-poster.3379036e.jpg'
+
+type HeroPlaybackState = 'idle' | 'attempting' | 'playing' | 'fallback'
 
 const getMediaMatch = (query: string) =>
   typeof window !== 'undefined' && window.matchMedia(query).matches
@@ -32,15 +41,32 @@ const canLoadMobileVideo = () => {
   return !['slow-2g', '2g', '3g'].includes(connection.effectiveType ?? '')
 }
 
+const isLikelyIOSSafari = () => {
+  if (typeof navigator === 'undefined') return false
+
+  const userAgent = navigator.userAgent
+  const isIOS = /iP(ad|hone|od)/.test(userAgent) ||
+    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
+  const isWebKit = /WebKit/.test(userAgent) && !/CriOS|FxiOS|EdgiOS|OPiOS/.test(userAgent)
+
+  return isIOS && isWebKit
+}
+
 export default function Hero() {
   const { t, lang } = useLanguage()
   const ref = useRef<HTMLDivElement>(null)
   const videoRef = useRef<HTMLVideoElement>(null)
+  const autoplayAttemptCountRef = useRef(0)
+  const fallbackTelemetrySentRef = useRef(false)
+  const playedTelemetrySentRef = useRef(false)
   const [isMobilePortrait, setIsMobilePortrait] = useState(() => getMediaMatch(MOBILE_PORTRAIT_QUERY))
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(() => getMediaMatch(REDUCED_MOTION_QUERY))
   const [canUseMobileVideo, setCanUseMobileVideo] = useState(() => canLoadMobileVideo())
-  const [shouldLoadVideo, setShouldLoadVideo] = useState(false)
-  const [isVideoReady, setIsVideoReady] = useState(false)
+  const [playbackState, setPlaybackState] = useState<HeroPlaybackState>('idle')
+  const [preferMp4First, setPreferMp4First] = useState(() => isLikelyIOSSafari())
+
+  const isMobilePerformanceMode = useIsMobilePerformanceMode()
+  const shouldAnimateDesktop = !isMobilePerformanceMode && !prefersReducedMotion
 
   useEffect(() => {
     if (typeof window === 'undefined') return
@@ -52,6 +78,7 @@ export default function Hero() {
       setIsMobilePortrait(mobilePortrait.matches)
       setPrefersReducedMotion(reducedMotion.matches)
       setCanUseMobileVideo(canLoadMobileVideo())
+      setPreferMp4First(isLikelyIOSSafari())
     }
 
     syncMatches()
@@ -73,27 +100,148 @@ export default function Hero() {
     }
   }, [])
 
-  useEffect(() => {
-    if (!isMobilePortrait || prefersReducedMotion || !canUseMobileVideo || shouldLoadVideo) return
-    const timeoutId = window.setTimeout(() => setShouldLoadVideo(true), 1400)
-    return () => window.clearTimeout(timeoutId)
-  }, [isMobilePortrait, prefersReducedMotion, canUseMobileVideo, shouldLoadVideo])
+  const shouldAttemptVideo =
+    HERO_PERFORMANCE_RECOVERY_ENABLED &&
+    isMobilePortrait &&
+    !prefersReducedMotion &&
+    canUseMobileVideo
 
   useEffect(() => {
-    if (!shouldLoadVideo || !videoRef.current || !isMobilePortrait) return
-
-    const heroVideo = videoRef.current
-    heroVideo.load()
-    if (prefersReducedMotion) {
-      heroVideo.pause()
+    if (!isMobilePortrait) {
+      setPlaybackState('idle')
       return
     }
 
-    const autoplayAttempt = heroVideo.play()
-    if (autoplayAttempt !== undefined) {
-      autoplayAttempt.catch(() => {})
+    if (!shouldAttemptVideo) {
+      setPlaybackState('fallback')
+      return
     }
-  }, [isMobilePortrait, shouldLoadVideo, prefersReducedMotion])
+
+    setPlaybackState(prev => (prev === 'playing' ? prev : 'attempting'))
+  }, [isMobilePortrait, shouldAttemptVideo])
+
+  const sourceOrder = preferMp4First ? 'mp4-first' : 'webm-first'
+
+  const moveToFallback = useCallback((reason: string) => {
+    if (!fallbackTelemetrySentRef.current) {
+      fallbackTelemetrySentRef.current = true
+      trackTelemetry('hero_video_fallback', {
+        reason,
+        source_order: sourceOrder,
+      })
+    }
+    setPlaybackState(prev => (prev === 'playing' || prev === 'fallback' ? prev : 'fallback'))
+  }, [sourceOrder])
+
+  useEffect(() => {
+    if (playbackState !== 'attempting' || !videoRef.current || !shouldAttemptVideo) return
+
+    autoplayAttemptCountRef.current = 0
+    fallbackTelemetrySentRef.current = false
+    playedTelemetrySentRef.current = false
+    const heroVideo = videoRef.current
+    const attemptDeadline = Date.now() + HERO_AUTOPLAY_ATTEMPT_WINDOW_MS
+    let settled = false
+    let hasTrackedAttempt = false
+
+    const failToFallback = (reason: string) => {
+      if (settled) return
+      settled = true
+      moveToFallback(reason)
+    }
+
+    const attemptPlayback = (reason: string) => {
+      if (settled) return
+      if (Date.now() > attemptDeadline) {
+        failToFallback('attempt_window_expired')
+        return
+      }
+
+      if (!hasTrackedAttempt) {
+        hasTrackedAttempt = true
+        trackTelemetry('hero_video_attempt', {
+          reason,
+          source_order: sourceOrder,
+        })
+      }
+
+      autoplayAttemptCountRef.current += 1
+      const playPromise = heroVideo.play()
+
+      if (playPromise !== undefined) {
+        playPromise.catch(() => {
+          if (Date.now() > attemptDeadline) {
+            failToFallback('play_rejected')
+          }
+        })
+      }
+    }
+
+    const handlePlay = () => {
+      if (settled) return
+      settled = true
+
+      if (!playedTelemetrySentRef.current) {
+        playedTelemetrySentRef.current = true
+        trackTelemetry('hero_video_played', {
+          attempts: autoplayAttemptCountRef.current,
+          source_order: sourceOrder,
+        })
+      }
+
+      setPlaybackState('playing')
+    }
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        attemptPlayback('visibilitychange')
+      }
+    }
+    const handleLoadedMetadata = () => {
+      attemptPlayback('loadedmetadata')
+    }
+    const handleCanPlay = () => {
+      attemptPlayback('canplay')
+    }
+
+    heroVideo.defaultMuted = true
+    heroVideo.muted = true
+    heroVideo.loop = true
+    heroVideo.autoplay = true
+    heroVideo.setAttribute('playsinline', '')
+    heroVideo.setAttribute('webkit-playsinline', '')
+    heroVideo.load()
+
+    heroVideo.addEventListener('play', handlePlay)
+    heroVideo.addEventListener('loadedmetadata', handleLoadedMetadata)
+    heroVideo.addEventListener('canplay', handleCanPlay)
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+
+    attemptPlayback('initial')
+
+    const retryIntervalId = window.setInterval(() => {
+      attemptPlayback('retry_interval')
+    }, HERO_AUTOPLAY_RETRY_INTERVAL_MS)
+
+    const fallbackTimeoutId = window.setTimeout(() => {
+      failToFallback('timeout')
+    }, HERO_AUTOPLAY_ATTEMPT_WINDOW_MS)
+
+    return () => {
+      window.clearInterval(retryIntervalId)
+      window.clearTimeout(fallbackTimeoutId)
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+      heroVideo.removeEventListener('play', handlePlay)
+      heroVideo.removeEventListener('loadedmetadata', handleLoadedMetadata)
+      heroVideo.removeEventListener('canplay', handleCanPlay)
+    }
+  }, [moveToFallback, playbackState, shouldAttemptVideo, sourceOrder])
+
+  useEffect(() => {
+    if (playbackState !== 'fallback' || !videoRef.current) return
+
+    videoRef.current.pause()
+  }, [playbackState])
 
   const { scrollYProgress } = useScroll({
     target: ref,
@@ -104,10 +252,12 @@ export default function Hero() {
   const scale = useTransform(scrollYProgress, [0, 1], [1, 1.1])
   const carX = useTransform(scrollYProgress, [0, 1], [0, 100])
 
+  const isVideoPlaying = playbackState === 'playing'
+
   return (
     <section ref={ref} className="relative h-screen min-h-[700px] flex flex-col overflow-hidden">
       {/* Background */}
-      <motion.div style={{ scale }} className="absolute inset-0">
+      <motion.div style={shouldAnimateDesktop ? { scale } : undefined} className="absolute inset-0">
         <div className="absolute inset-0 bg-gradient-to-br from-cc-black via-cc-black-800 to-cc-black" />
         <div className="absolute -top-1/4 -right-1/4 w-[800px] h-[800px] rounded-full bg-cc-red/[0.04] blur-[150px]" />
         <div className="absolute -bottom-1/4 -left-1/4 w-[600px] h-[600px] rounded-full bg-cc-red/[0.02] blur-[120px]" />
@@ -121,13 +271,13 @@ export default function Hero() {
 
       {/* Abstract car silhouette on right side - desktop only */}
       <motion.div
-        style={{ x: carX }}
+        style={shouldAnimateDesktop ? { x: carX } : undefined}
         className="absolute right-0 bottom-[15%] w-[55%] h-[40%] hidden lg:block pointer-events-none"
       >
         <motion.svg
-          initial={{ opacity: 0, x: 80 }}
-          animate={{ opacity: 0.04, x: 0 }}
-          transition={{ duration: 1.5, delay: 1, ease: 'easeOut' }}
+          initial={shouldAnimateDesktop ? { opacity: 0, x: 80 } : undefined}
+          animate={shouldAnimateDesktop ? { opacity: 0.04, x: 0 } : undefined}
+          transition={shouldAnimateDesktop ? { duration: 1.5, delay: 1, ease: 'easeOut' } : undefined}
           viewBox="0 0 800 300"
           fill="none"
           className="w-full h-full"
@@ -148,79 +298,83 @@ export default function Hero() {
       </motion.div>
 
       {/* Horizontal speed lines */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 1.3, duration: 1 }}
-        className="absolute right-0 top-1/2 -translate-y-1/2 hidden lg:block pointer-events-none"
-      >
-        {[...Array(5)].map((_, i) => (
-          <motion.div
-            key={i}
-            initial={{ width: 0, opacity: 0 }}
-            animate={{ width: 60 + i * 30, opacity: 0.03 + i * 0.01 }}
-            transition={{ delay: 1.5 + i * 0.1, duration: 0.8 }}
-            className="h-[1px] bg-cc-red mb-6"
-            style={{ marginRight: i * 20 }}
-          />
-        ))}
-      </motion.div>
-
-      {/* Mobile portrait video background band */}
-      {isMobilePortrait && (
+      {shouldAnimateDesktop && (
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ duration: 0.55, delay: 0.15 }}
-          className="pointer-events-none absolute inset-x-0 top-16 h-[clamp(220px,34vh,340px)] overflow-hidden md:hidden z-[2]"
+          transition={{ delay: 1.3, duration: 1 }}
+          className="absolute right-0 top-1/2 -translate-y-1/2 hidden lg:block pointer-events-none"
         >
+          {[...Array(5)].map((_, i) => (
+            <motion.div
+              key={i}
+              initial={{ width: 0, opacity: 0 }}
+              animate={{ width: 60 + i * 30, opacity: 0.03 + i * 0.01 }}
+              transition={{ delay: 1.5 + i * 0.1, duration: 0.8 }}
+              className="h-[1px] bg-cc-red mb-6"
+              style={{ marginRight: i * 20 }}
+            />
+          ))}
+        </motion.div>
+      )}
+
+      {/* Mobile portrait video background band */}
+      {isMobilePortrait && (
+        <div className="pointer-events-none absolute inset-x-0 top-16 h-[clamp(220px,34vh,340px)] overflow-hidden md:hidden z-[2]">
           <img
             src={HERO_VIDEO_POSTER}
             alt=""
             aria-hidden="true"
-            className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-500 ${isVideoReady ? 'opacity-0' : 'opacity-100'}`}
+            className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-300 ${isVideoPlaying ? 'opacity-0' : 'opacity-100'}`}
             loading="eager"
             decoding="async"
             fetchPriority="high"
           />
+
           <video
             ref={videoRef}
-            className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-500 ${isVideoReady ? 'opacity-100' : 'opacity-0'}`}
+            className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-300 ${isVideoPlaying ? 'opacity-100' : 'opacity-0'}`}
             poster={HERO_VIDEO_POSTER}
             muted
             loop
             playsInline
-            preload="metadata"
-            autoPlay={shouldLoadVideo && !prefersReducedMotion && canUseMobileVideo}
-            onCanPlay={() => setIsVideoReady(true)}
-            onLoadedData={() => setIsVideoReady(true)}
+            autoPlay
+            preload={shouldAttemptVideo ? 'metadata' : 'none'}
             aria-hidden="true"
             tabIndex={-1}
           >
-            {shouldLoadVideo && canUseMobileVideo && (
-              <>
-                <source src={HERO_VIDEO_WEBM} type="video/webm" />
-                <source src={HERO_VIDEO_MP4} type="video/mp4" />
-              </>
+            {shouldAttemptVideo && playbackState !== 'fallback' && (
+              preferMp4First ? (
+                <>
+                  <source src={HERO_VIDEO_MP4} type="video/mp4" />
+                  <source src={HERO_VIDEO_WEBM} type="video/webm" />
+                </>
+              ) : (
+                <>
+                  <source src={HERO_VIDEO_WEBM} type="video/webm" />
+                  <source src={HERO_VIDEO_MP4} type="video/mp4" />
+                </>
+              )
             )}
           </video>
+
           <div className="absolute inset-0 bg-gradient-to-b from-cc-black/45 via-transparent to-cc-black/80" />
-        </motion.div>
+        </div>
       )}
 
       {/* Main content area - grows to fill space above stats */}
       <motion.div
-        style={{ opacity, y }}
+        style={shouldAnimateDesktop ? { opacity, y } : undefined}
         className={`relative z-10 flex-1 flex items-start md:items-center max-w-7xl mx-auto w-full px-4 md:px-6 ${
-          isMobilePortrait ? 'pt-[calc(4rem+35vh)]' : 'pt-24'
+          isMobilePortrait ? 'pt-[calc(4rem+clamp(220px,34vh,340px)+1.5rem)]' : 'pt-24'
         } md:pt-20 pb-10 md:pb-0`}
       >
         <div className="max-w-3xl w-full">
           {/* Tagline */}
           <motion.div
-            initial={{ opacity: 0, x: lang === 'ar' ? 30 : -30 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.7, delay: 0.2 }}
+            initial={shouldAnimateDesktop ? { opacity: 0, x: lang === 'ar' ? 30 : -30 } : undefined}
+            animate={shouldAnimateDesktop ? { opacity: 1, x: 0 } : undefined}
+            transition={shouldAnimateDesktop ? { duration: 0.7, delay: 0.2 } : undefined}
             className="flex items-center gap-3 mb-5 md:mb-6"
           >
             <span className="block w-9 md:w-10 h-[2px] bg-cc-red" />
@@ -229,11 +383,11 @@ export default function Hero() {
             </span>
           </motion.div>
 
-          {/* Main title - using Oxanium */}
+          {/* Main title */}
           <motion.div
-            initial={{ opacity: 0, y: 40 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.4 }}
+            initial={shouldAnimateDesktop ? { opacity: 0, y: 40 } : undefined}
+            animate={shouldAnimateDesktop ? { opacity: 1, y: 0 } : undefined}
+            transition={shouldAnimateDesktop ? { duration: 0.8, delay: 0.4 } : undefined}
           >
             <h1
               className="text-[3.6rem] leading-[0.88] sm:text-7xl md:text-8xl lg:text-9xl font-normal tracking-wider"
@@ -246,17 +400,17 @@ export default function Hero() {
 
           {/* Red accent line below title */}
           <motion.div
-            initial={{ width: 0 }}
-            animate={{ width: 80 }}
-            transition={{ duration: 0.8, delay: 0.8 }}
+            initial={shouldAnimateDesktop ? { width: 0 } : undefined}
+            animate={shouldAnimateDesktop ? { width: 80 } : undefined}
+            transition={shouldAnimateDesktop ? { duration: 0.8, delay: 0.8 } : undefined}
             className="h-[3px] bg-gradient-to-r from-cc-red to-transparent mt-5 md:mt-6"
           />
 
           {/* Subtitle */}
           <motion.p
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7, delay: 0.7 }}
+            initial={shouldAnimateDesktop ? { opacity: 0, y: 30 } : undefined}
+            animate={shouldAnimateDesktop ? { opacity: 1, y: 0 } : undefined}
+            transition={shouldAnimateDesktop ? { duration: 0.7, delay: 0.7 } : undefined}
             className="hidden md:block mt-4 md:mt-5 text-cc-gray-300 text-[1.04rem] md:text-lg leading-relaxed max-w-lg"
           >
             {t('hero.subtitle')}
@@ -264,9 +418,9 @@ export default function Hero() {
 
           {/* CTAs */}
           <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7, delay: 0.9 }}
+            initial={shouldAnimateDesktop ? { opacity: 0, y: 30 } : undefined}
+            animate={shouldAnimateDesktop ? { opacity: 1, y: 0 } : undefined}
+            transition={shouldAnimateDesktop ? { duration: 0.7, delay: 0.9 } : undefined}
             className="flex flex-wrap items-center gap-3 md:gap-4 mt-6 md:mt-8"
           >
             <Link to="/inventory">
@@ -290,9 +444,9 @@ export default function Hero() {
 
       {/* Stats strip - pinned to bottom, separate from content flow */}
       <motion.div
-        initial={{ opacity: 0, y: 30 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.7, delay: 1.2 }}
+        initial={shouldAnimateDesktop ? { opacity: 0, y: 30 } : undefined}
+        animate={shouldAnimateDesktop ? { opacity: 1, y: 0 } : undefined}
+        transition={shouldAnimateDesktop ? { duration: 0.7, delay: 1.2 } : undefined}
         className="relative z-10 hidden md:block"
       >
         <div className="max-w-7xl mx-auto px-4 md:px-6">
@@ -309,19 +463,21 @@ export default function Hero() {
       <div className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-cc-black to-transparent pointer-events-none z-[5]" />
 
       {/* Scroll indicator */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 1.5 }}
-        className="absolute bottom-4 left-1/2 -translate-x-1/2 z-10 hidden md:flex flex-col items-center gap-2"
-      >
+      {shouldAnimateDesktop && (
         <motion.div
-          animate={{ y: [0, 8, 0] }}
-          transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 1.5 }}
+          className="absolute bottom-4 left-1/2 -translate-x-1/2 z-10 hidden md:flex flex-col items-center gap-2"
         >
-          <ChevronDown size={20} className="text-cc-gray-400" />
+          <motion.div
+            animate={{ y: [0, 8, 0] }}
+            transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }}
+          >
+            <ChevronDown size={20} className="text-cc-gray-400" />
+          </motion.div>
         </motion.div>
-      </motion.div>
+      )}
     </section>
   )
 }

@@ -3,8 +3,8 @@ import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom'
 import { SpeedInsights } from '@vercel/speed-insights/react'
 import { LanguageProvider } from './context/LanguageContext'
 import Layout from './components/layout/Layout'
+import Home from './pages/Home'
 
-const Home = lazy(() => import('./pages/Home'))
 const Inventory = lazy(() => import('./pages/Inventory'))
 const VehicleDetails = lazy(() => import('./pages/VehicleDetails'))
 const About = lazy(() => import('./pages/About'))
@@ -37,7 +37,7 @@ export default function App() {
         <SpeedInsightsTracker />
         <Routes>
           <Route element={<Layout />}>
-            <Route path="/" element={withRouteSuspense(<Home />)} />
+            <Route path="/" element={<Home />} />
             <Route path="/inventory" element={withRouteSuspense(<Inventory />)} />
             <Route path="/inventory/:slug" element={withRouteSuspense(<VehicleDetails />)} />
             <Route path="/about" element={withRouteSuspense(<About />)} />

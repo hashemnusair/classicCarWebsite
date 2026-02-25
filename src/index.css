@@ -1,9 +1,52 @@
-@import url('https://fonts.googleapis.com/css2?family=Michroma&family=Orbitron:wght@400;500&family=Oxanium:wght@200..800&family=Outfit:wght@300;400;500;600;700&family=Tajawal:wght@300;400;500;700;800&display=swap');
 @import "tailwindcss";
+
+@font-face {
+  font-family: 'Michroma';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/michroma-latin-400.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Orbitron';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('/fonts/orbitron-latin-500.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Outfit';
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+  src: url('/fonts/outfit-latin-400-700.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Tajawal';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src:
+    url('/fonts/tajawal-arabic-400.woff2') format('woff2'),
+    url('/fonts/tajawal-latin-400.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Tajawal';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src:
+    url('/fonts/tajawal-arabic-700.woff2') format('woff2'),
+    url('/fonts/tajawal-latin-700.woff2') format('woff2');
+}
 
 @theme {
   --font-display: 'Michroma', sans-serif;
-  --font-hero: 'Oxanium', sans-serif;
+  --font-hero: 'Orbitron', sans-serif;
   --font-body: 'Outfit', sans-serif;
   --font-arabic: 'Tajawal', sans-serif;
 

@@ -7,9 +7,10 @@ import { useLanguage } from '../../context/LanguageContext'
 interface CarCardProps {
   vehicle: Vehicle
   index?: number
+  disableMotion?: boolean
 }
 
-export default function CarCard({ vehicle, index = 0 }: CarCardProps) {
+export default function CarCard({ vehicle, index = 0, disableMotion = false }: CarCardProps) {
   const { lang, t } = useLanguage()
 
   const title = `${vehicle.year} ${vehicle.make} ${vehicle.model}`
@@ -17,10 +18,10 @@ export default function CarCard({ vehicle, index = 0 }: CarCardProps) {
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 30 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: '-50px' }}
-      transition={{ duration: 0.5, delay: index * 0.08 }}
+      initial={disableMotion ? undefined : { opacity: 0, y: 30 }}
+      whileInView={disableMotion ? undefined : { opacity: 1, y: 0 }}
+      viewport={disableMotion ? undefined : { once: true, margin: '-50px' }}
+      transition={disableMotion ? undefined : { duration: 0.5, delay: index * 0.08 }}
     >
       <Link
         to={`/inventory/${vehicle.slug}`}

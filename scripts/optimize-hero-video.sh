@@ -67,6 +67,18 @@ if ffmpeg -hide_banner -encoders 2>/dev/null | grep -q 'libwebp'; then
   POSTER_FINAL="${POSTER_WEBP}"
 fi
 
+hash8() {
+  shasum -a 256 "$1" | awk '{print substr($1,1,8)}'
+}
+
+MP4_HASH=$(hash8 "${OUTPUT_DIR}/hero-mobile.mp4")
+WEBM_HASH=$(hash8 "${OUTPUT_DIR}/hero-mobile.webm")
+POSTER_HASH=$(hash8 "${POSTER_JPG}")
+
+cp "${OUTPUT_DIR}/hero-mobile.mp4" "${OUTPUT_DIR}/hero-mobile.${MP4_HASH}.mp4"
+cp "${OUTPUT_DIR}/hero-mobile.webm" "${OUTPUT_DIR}/hero-mobile.${WEBM_HASH}.webm"
+cp "${POSTER_JPG}" "${OUTPUT_DIR}/hero-mobile-poster.${POSTER_HASH}.jpg"
+
 echo
 echo "Variant sizes:"
 ls -lh "${VARIANTS_DIR}" | awk 'NR==1 || /hero-mobile-/'
@@ -75,6 +87,9 @@ echo
 echo "Selected profile: ${SELECTED_PROFILE}"
 echo "Final output sizes:"
 ls -lh "${OUTPUT_DIR}/hero-mobile.mp4" "${OUTPUT_DIR}/hero-mobile.webm" "${POSTER_FINAL}"
+echo "Versioned hero files:"
+ls -lh "${OUTPUT_DIR}/hero-mobile.${MP4_HASH}.mp4" "${OUTPUT_DIR}/hero-mobile.${WEBM_HASH}.webm" "${OUTPUT_DIR}/hero-mobile-poster.${POSTER_HASH}.jpg"
+echo "Reminder: update Hero.tsx and index.html if you want to switch to the newly versioned filenames."
 
 echo
 echo "Final output metadata:"

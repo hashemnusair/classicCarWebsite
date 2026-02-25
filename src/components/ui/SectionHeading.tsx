@@ -5,15 +5,22 @@ interface SectionHeadingProps {
   subtitle?: string
   align?: 'left' | 'center'
   accent?: boolean
+  disableMotion?: boolean
 }
 
-export default function SectionHeading({ title, subtitle, align = 'center', accent = true }: SectionHeadingProps) {
+export default function SectionHeading({
+  title,
+  subtitle,
+  align = 'center',
+  accent = true,
+  disableMotion = false,
+}: SectionHeadingProps) {
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: '-80px' }}
-      transition={{ duration: 0.6 }}
+      initial={disableMotion ? undefined : { opacity: 0, y: 20 }}
+      whileInView={disableMotion ? undefined : { opacity: 1, y: 0 }}
+      viewport={disableMotion ? undefined : { once: true, margin: '-80px' }}
+      transition={disableMotion ? undefined : { duration: 0.6 }}
       className={`mb-12 ${align === 'center' ? 'text-center' : 'text-start'}`}
     >
       {accent && (

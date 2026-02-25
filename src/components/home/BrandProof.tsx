@@ -2,6 +2,7 @@ import { motion } from 'framer-motion'
 import { Shield, Globe, Star, Headphones } from 'lucide-react'
 import SectionHeading from '../ui/SectionHeading'
 import { useLanguage } from '../../context/LanguageContext'
+import { useIsMobilePerformanceMode } from '../../hooks/useIsMobilePerformanceMode'
 
 const features = [
   { icon: Shield, titleKey: 'home.quality', descKey: 'home.qualityDesc' },
@@ -12,6 +13,7 @@ const features = [
 
 export default function BrandProof() {
   const { t } = useLanguage()
+  const isMobilePerformanceMode = useIsMobilePerformanceMode()
 
   return (
     <section className="relative py-24 md:py-32 bg-cc-black-900">
@@ -24,6 +26,7 @@ export default function BrandProof() {
       <div className="relative max-w-7xl mx-auto px-4 md:px-6 pt-8">
         <SectionHeading
           title={t('home.brandPromise')}
+          disableMotion={isMobilePerformanceMode}
         />
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mt-4">
@@ -32,10 +35,10 @@ export default function BrandProof() {
             return (
               <motion.div
                 key={feature.titleKey}
-                initial={{ opacity: 0, y: 30 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, margin: '-50px' }}
-                transition={{ duration: 0.5, delay: i * 0.1 }}
+                initial={isMobilePerformanceMode ? undefined : { opacity: 0, y: 30 }}
+                whileInView={isMobilePerformanceMode ? undefined : { opacity: 1, y: 0 }}
+                viewport={isMobilePerformanceMode ? undefined : { once: true, margin: '-50px' }}
+                transition={isMobilePerformanceMode ? undefined : { duration: 0.5, delay: i * 0.1 }}
                 className="group relative p-8 rounded-lg glass-card racing-stripe"
               >
                 {/* Icon */}

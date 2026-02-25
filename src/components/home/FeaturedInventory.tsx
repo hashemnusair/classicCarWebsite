@@ -7,9 +7,11 @@ import CarCard from '../ui/CarCard'
 import Button from '../ui/Button'
 import { getFeaturedVehicles } from '../../data/vehicles'
 import { useLanguage } from '../../context/LanguageContext'
+import { useIsMobilePerformanceMode } from '../../hooks/useIsMobilePerformanceMode'
 
 export default function FeaturedInventory() {
   const { t, lang } = useLanguage()
+  const isMobilePerformanceMode = useIsMobilePerformanceMode()
   const featured = getFeaturedVehicles().slice(0, 6)
   const sectionRef = useRef<HTMLDivElement>(null)
   const { scrollYProgress } = useScroll({
@@ -22,7 +24,7 @@ export default function FeaturedInventory() {
     <section ref={sectionRef} className="relative py-24 md:py-32 overflow-hidden">
       {/* Background accent */}
       <motion.div
-        style={{ y: bgY }}
+        style={isMobilePerformanceMode ? undefined : { y: bgY }}
         className="absolute top-1/4 -right-32 w-[500px] h-[500px] rounded-full bg-cc-red/[0.015] blur-[120px] pointer-events-none"
       />
 
@@ -30,21 +32,22 @@ export default function FeaturedInventory() {
         <SectionHeading
           title={t('home.featured')}
           subtitle={t('home.featuredSub')}
+          disableMotion={isMobilePerformanceMode}
         />
 
         {/* Car Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {featured.map((vehicle, i) => (
-            <CarCard key={vehicle.id} vehicle={vehicle} index={i} />
+            <CarCard key={vehicle.id} vehicle={vehicle} index={i} disableMotion={isMobilePerformanceMode} />
           ))}
         </div>
 
         {/* View All CTA */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.5, delay: 0.3 }}
+          initial={isMobilePerformanceMode ? undefined : { opacity: 0, y: 20 }}
+          whileInView={isMobilePerformanceMode ? undefined : { opacity: 1, y: 0 }}
+          viewport={isMobilePerformanceMode ? undefined : { once: true }}
+          transition={isMobilePerformanceMode ? undefined : { duration: 0.5, delay: 0.3 }}
           className="mt-14 text-center"
         >
           <Link to="/inventory">

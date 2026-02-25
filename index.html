@@ -6,6 +6,35 @@
     <link rel="shortcut icon" type="image/jpeg" href="/logo.jpg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#050505" />
+    <link
+      rel="preload"
+      as="image"
+      href="/media/hero/hero-mobile-poster.3379036e.jpg"
+      fetchpriority="high"
+    />
+    <script>
+      (function preloadFontsForActiveLanguage() {
+        var activeLanguage = 'en'
+        try {
+          activeLanguage = localStorage.getItem('classiccar-lang') === 'ar' ? 'ar' : 'en'
+        } catch (error) {
+          activeLanguage = 'en'
+        }
+        var fontFiles = activeLanguage === 'ar'
+          ? ['/fonts/tajawal-arabic-400.woff2', '/fonts/tajawal-arabic-700.woff2']
+          : ['/fonts/outfit-latin-400-700.woff2', '/fonts/michroma-latin-400.woff2', '/fonts/orbitron-latin-500.woff2']
+
+        for (var i = 0; i < fontFiles.length; i += 1) {
+          var preload = document.createElement('link')
+          preload.rel = 'preload'
+          preload.as = 'font'
+          preload.type = 'font/woff2'
+          preload.crossOrigin = ''
+          preload.href = fontFiles[i]
+          document.head.appendChild(preload)
+        }
+      })()
+    </script>
     <meta name="description" content="Classic Car — Jordan's premier destination for luxury and performance vehicles. Browse our curated collection of premium automobiles." />
     <title>Classic Car — Premium Automotive Excellence</title>
   </head>
