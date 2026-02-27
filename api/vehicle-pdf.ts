@@ -1,10 +1,10 @@
 import chromium from '@sparticuz/chromium'
 import puppeteer from 'puppeteer-core'
 import QRCode from 'qrcode'
-import { getBranchForVehicle, siteConfig } from '../src/data/branches'
-import { getVehicleBySlug } from '../src/data/vehicles'
-import { t } from '../src/i18n'
-import type { Language, Vehicle, VehicleImage } from '../src/types'
+import { getBranchForVehicle, siteConfig } from '../src/data/branches.js'
+import { getVehicleBySlug } from '../src/data/vehicles.js'
+import { t } from '../src/i18n/index.js'
+import type { Language, Vehicle, VehicleImage } from '../src/types/index.js'
 
 type PdfLang = Extract<Language, 'en' | 'ar'>
 type QueryValue = string | string[] | undefined

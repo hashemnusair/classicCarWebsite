@@ -1,6 +1,6 @@
-import { en } from './en'
-import { ar } from './ar'
-import type { Language } from '../types'
+import { en } from './en.js'
+import { ar } from './ar.js'
+import type { Language } from '../types/index.js'
 
 const translations = { en, ar }
 
