@@ -18,6 +18,7 @@ export interface VehicleImage {
 export interface Vehicle {
   id: string
   slug: string
+  branchId?: string
   status: VehicleStatus
   make: string
   model: string

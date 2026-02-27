@@ -27,9 +27,24 @@ export const branches: Branch[] = [
   },
 ]
 
+export function getBranchById(id: string): Branch | undefined {
+  return branches.find(branch => branch.id === id)
+}
+
+export function getPrimaryBranch(): Branch {
+  return branches[0]
+}
+
+export function getBranchForVehicle(branchId?: string): Branch {
+  if (!branchId) return getPrimaryBranch()
+  return getBranchById(branchId) ?? getPrimaryBranch()
+}
+
+const primaryBranch = getPrimaryBranch()
+
 export const siteConfig = {
-  whatsapp: '+962795001234',
-  phone: '+962 6 585 1234',
+  whatsapp: primaryBranch.whatsapp,
+  phone: primaryBranch.phone,
   email: 'info@classiccar.jo',
   instagram: 'https://instagram.com/classiccar.jo',
   facebook: 'https://facebook.com/classiccar.jo',

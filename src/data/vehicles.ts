@@ -20,6 +20,7 @@ export const vehicles: Vehicle[] = [
   {
     id: '1',
     slug: '2024-mercedes-benz-s500',
+    branchId: '1',
     status: 'available',
     make: 'Mercedes-Benz',
     model: 'S 500',
@@ -50,6 +51,7 @@ export const vehicles: Vehicle[] = [
   {
     id: '2',
     slug: '2023-bmw-m4-competition',
+    branchId: '1',
     status: 'available',
     make: 'BMW',
     model: 'M4',
@@ -80,6 +82,7 @@ export const vehicles: Vehicle[] = [
   {
     id: '3',
     slug: '2024-range-rover-autobiography',
+    branchId: '1',
     status: 'available',
     make: 'Land Rover',
     model: 'Range Rover',
@@ -110,6 +113,7 @@ export const vehicles: Vehicle[] = [
   {
     id: '4',
     slug: '2023-porsche-911-carrera-s',
+    branchId: '1',
     status: 'available',
     make: 'Porsche',
     model: '911',
@@ -140,6 +144,7 @@ export const vehicles: Vehicle[] = [
   {
     id: '5',
     slug: '2024-mercedes-amg-g63',
+    branchId: '1',
     status: 'available',
     make: 'Mercedes-Benz',
     model: 'G 63',
@@ -170,6 +175,7 @@ export const vehicles: Vehicle[] = [
   {
     id: '6',
     slug: '2023-bmw-x7-m60i',
+    branchId: '1',
     status: 'available',
     make: 'BMW',
     model: 'X7',
@@ -200,6 +206,7 @@ export const vehicles: Vehicle[] = [
   {
     id: '7',
     slug: '2024-lexus-lx600',
+    branchId: '2',
     status: 'available',
     make: 'Lexus',
     model: 'LX 600',
@@ -230,6 +237,7 @@ export const vehicles: Vehicle[] = [
   {
     id: '8',
     slug: '2023-audi-rs-etron-gt',
+    branchId: '2',
     status: 'reserved',
     make: 'Audi',
     model: 'RS e-tron GT',
@@ -260,6 +268,7 @@ export const vehicles: Vehicle[] = [
   {
     id: '9',
     slug: '2024-toyota-land-cruiser-300',
+    branchId: '2',
     status: 'available',
     make: 'Toyota',
     model: 'Land Cruiser',
@@ -289,6 +298,7 @@ export const vehicles: Vehicle[] = [
   {
     id: '10',
     slug: '2023-mercedes-amg-gt63-s',
+    branchId: '2',
     status: 'available',
     make: 'Mercedes-Benz',
     model: 'AMG GT',
@@ -319,6 +329,7 @@ export const vehicles: Vehicle[] = [
   {
     id: '11',
     slug: '2024-porsche-cayenne-turbo-gt',
+    branchId: '2',
     status: 'available',
     make: 'Porsche',
     model: 'Cayenne',
@@ -349,6 +360,7 @@ export const vehicles: Vehicle[] = [
   {
     id: '12',
     slug: '2023-bmw-740i-m-sport',
+    branchId: '2',
     status: 'available',
     make: 'BMW',
     model: '740i',

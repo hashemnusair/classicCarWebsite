@@ -1,16 +1,20 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Send, MessageCircle, Phone, Mail, MapPin, CheckCircle } from 'lucide-react'
 import SectionHeading from '../components/ui/SectionHeading'
 import Button from '../components/ui/Button'
-import { siteConfig } from '../data/branches'
+import { getBranchForVehicle, siteConfig } from '../data/branches'
 import { useLanguage } from '../context/LanguageContext'
 
 export default function Contact() {
-  const { t } = useLanguage()
+  const { t, lang } = useLanguage()
   const [searchParams] = useSearchParams()
   const carOfInterest = searchParams.get('car') || ''
+  const branchParam = searchParams.get('branch') || undefined
+  const activeBranch = useMemo(() => getBranchForVehicle(branchParam), [branchParam])
+  const branchName = lang === 'ar' ? activeBranch.nameAr : activeBranch.nameEn
+  const branchAddress = lang === 'ar' ? activeBranch.addressAr : activeBranch.addressEn
 
   const [form, setForm] = useState({
     name: '',
@@ -39,15 +43,15 @@ export default function Contact() {
     {
       icon: MessageCircle,
       label: t('contact.whatsapp'),
-      value: siteConfig.whatsapp,
-      href: `https://wa.me/${siteConfig.whatsapp.replace(/[^0-9]/g, '')}`,
+      value: activeBranch.whatsapp,
+      href: `https://wa.me/${activeBranch.whatsapp.replace(/[^0-9]/g, '')}`,
       color: 'bg-[#25D366]/10 text-[#25D366] border-[#25D366]/20',
     },
     {
       icon: Phone,
       label: t('contact.call'),
-      value: siteConfig.phone,
-      href: `tel:${siteConfig.phone}`,
+      value: activeBranch.phone,
+      href: `tel:${activeBranch.phone}`,
       color: 'bg-cc-red/10 text-cc-red-light border-cc-red/20',
     },
     {
@@ -60,8 +64,8 @@ export default function Contact() {
     {
       icon: MapPin,
       label: t('contact.visitUs'),
-      value: 'Amman, Jordan',
-      href: '#',
+      value: branchAddress,
+      href: activeBranch.googleMapsUrl,
       color: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
     },
   ]
@@ -73,6 +77,14 @@ export default function Contact() {
           title={t('contact.title')}
           subtitle={t('contact.subtitle')}
         />
+
+        <div className="glass-card rounded-xl p-5 md:p-6 mb-8">
+          <p className="text-cc-gray-400 text-xs tracking-[0.2em] uppercase mb-2">
+            {t('vehicle.showroom')}
+          </p>
+          <h3 className="font-display text-base tracking-wider text-cc-white mb-2">{branchName}</h3>
+          <p className="text-cc-gray-300 text-sm">{branchAddress}</p>
+        </div>
 
         {/* Contact Methods */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-16">
@@ -97,7 +109,10 @@ export default function Contact() {
                 <span className="font-display text-xs tracking-wider text-cc-white">
                   {method.label}
                 </span>
-                <span className="text-cc-gray-400 text-xs" dir="ltr">
+                <span
+                  className="text-cc-gray-400 text-xs"
+                  dir={method.href.startsWith('tel:') || method.href.startsWith('mailto:') || method.href.includes('wa.me') ? 'ltr' : undefined}
+                >
                   {method.value}
                 </span>
               </motion.a>
@@ -136,7 +151,7 @@ export default function Contact() {
                     {t('contact.thankYouMessage')}
                   </p>
                   <a
-                    href={`https://wa.me/${siteConfig.whatsapp.replace(/[^0-9]/g, '')}`}
+                    href={`https://wa.me/${activeBranch.whatsapp.replace(/[^0-9]/g, '')}`}
                     target="_blank"
                     rel="noopener noreferrer"
                   >
@@ -219,6 +234,18 @@ export default function Contact() {
                         </button>
                       ))}
                     </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-cc-gray-300 text-xs tracking-wider uppercase mb-2">
+                      {t('vehicle.showroom')}
+                    </label>
+                    <input
+                      type="text"
+                      value={branchName}
+                      className={`${inputClass} opacity-90`}
+                      readOnly
+                    />
                   </div>
 
                   {carOfInterest && (
