@@ -14,11 +14,11 @@ import {
 import { useIsMobilePerformanceMode } from '../../hooks/useIsMobilePerformanceMode'
 import { trackTelemetry } from '../../lib/telemetry'
 
-const HERO_VIDEO_WEBM = '/media/hero/hero-mobile.9142e33d.webm'
-const HERO_VIDEO_MP4 = '/media/hero/hero-mobile.eff86f8c.mp4'
+const HERO_VIDEO_WEBM = '/media/hero/variants/hero-mobile-tiny.webm'
+const HERO_VIDEO_MP4 = '/media/hero/variants/hero-mobile-tiny.mp4'
 const HERO_VIDEO_POSTER = '/media/hero/hero-mobile-poster.3379036e.jpg'
 
-type HeroPlaybackState = 'idle' | 'attempting' | 'playing' | 'fallback'
+type HeroPlaybackState = 'idle' | 'playing' | 'fallback'
 
 const getMediaMatch = (query: string) =>
   typeof window !== 'undefined' && window.matchMedia(query).matches
@@ -62,6 +62,7 @@ export default function Hero() {
   const [isMobilePortrait, setIsMobilePortrait] = useState(() => getMediaMatch(MOBILE_PORTRAIT_QUERY))
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(() => getMediaMatch(REDUCED_MOTION_QUERY))
   const [canUseMobileVideo, setCanUseMobileVideo] = useState(() => canLoadMobileVideo())
+  const [isIosWebKit, setIsIosWebKit] = useState(() => isLikelyIOSSafari())
   const [playbackState, setPlaybackState] = useState<HeroPlaybackState>('idle')
   const [preferMp4First, setPreferMp4First] = useState(() => isLikelyIOSSafari())
 
@@ -75,10 +76,23 @@ export default function Hero() {
     const reducedMotion = window.matchMedia(REDUCED_MOTION_QUERY)
 
     const syncMatches = () => {
-      setIsMobilePortrait(mobilePortrait.matches)
-      setPrefersReducedMotion(reducedMotion.matches)
-      setCanUseMobileVideo(canLoadMobileVideo())
-      setPreferMp4First(isLikelyIOSSafari())
+      const mobileMatches = mobilePortrait.matches
+      const reducedMotionMatches = reducedMotion.matches
+      const canUseVideo = canLoadMobileVideo()
+      const iosWebKit = isLikelyIOSSafari()
+
+      setIsMobilePortrait(mobileMatches)
+      setPrefersReducedMotion(reducedMotionMatches)
+      setCanUseMobileVideo(canUseVideo)
+      setIsIosWebKit(iosWebKit)
+      setPreferMp4First(iosWebKit)
+      setPlaybackState(prev => {
+        if (!mobileMatches) return 'idle'
+        if (!HERO_PERFORMANCE_RECOVERY_ENABLED || reducedMotionMatches || !canUseVideo || iosWebKit) {
+          return 'fallback'
+        }
+        return prev === 'playing' ? prev : 'idle'
+      })
     }
 
     syncMatches()
@@ -104,21 +118,8 @@ export default function Hero() {
     HERO_PERFORMANCE_RECOVERY_ENABLED &&
     isMobilePortrait &&
     !prefersReducedMotion &&
-    canUseMobileVideo
-
-  useEffect(() => {
-    if (!isMobilePortrait) {
-      setPlaybackState('idle')
-      return
-    }
-
-    if (!shouldAttemptVideo) {
-      setPlaybackState('fallback')
-      return
-    }
-
-    setPlaybackState(prev => (prev === 'playing' ? prev : 'attempting'))
-  }, [isMobilePortrait, shouldAttemptVideo])
+    canUseMobileVideo &&
+    !isIosWebKit
 
   const sourceOrder = preferMp4First ? 'mp4-first' : 'webm-first'
 
@@ -134,7 +135,8 @@ export default function Hero() {
   }, [sourceOrder])
 
   useEffect(() => {
-    if (playbackState !== 'attempting' || !videoRef.current || !shouldAttemptVideo) return
+    if (!videoRef.current || !shouldAttemptVideo) return
+    if (playbackState === 'playing' || playbackState === 'fallback') return
 
     autoplayAttemptCountRef.current = 0
     fallbackTelemetrySentRef.current = false
@@ -289,29 +291,29 @@ export default function Hero() {
               decoding="async"
               fetchPriority="high"
             />
-            <video
-              ref={videoRef}
-              className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-300 ${isVideoPlaying ? 'opacity-100' : 'opacity-0'}`}
-              poster={HERO_VIDEO_POSTER}
-              muted
-              loop
-              playsInline
-              autoPlay
-              preload={shouldAttemptVideo ? (preferMp4First ? 'auto' : 'metadata') : 'none'}
-              aria-hidden="true"
-              tabIndex={-1}
-            >
-              {shouldAttemptVideo && playbackState !== 'fallback' && (
-                preferMp4First ? (
+            {shouldAttemptVideo && playbackState !== 'fallback' && (
+              <video
+                ref={videoRef}
+                className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-300 ${isVideoPlaying ? 'opacity-100' : 'opacity-0'}`}
+                poster={HERO_VIDEO_POSTER}
+                muted
+                loop
+                playsInline
+                autoPlay
+                preload={preferMp4First ? 'auto' : 'metadata'}
+                aria-hidden="true"
+                tabIndex={-1}
+              >
+                {preferMp4First ? (
                   <source src={HERO_VIDEO_MP4} type="video/mp4" />
                 ) : (
                   <>
                     <source src={HERO_VIDEO_WEBM} type="video/webm" />
                     <source src={HERO_VIDEO_MP4} type="video/mp4" />
                   </>
-                )
-              )}
-            </video>
+                )}
+              </video>
+            )}
           </div>
         )}
       </motion.div>

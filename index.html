@@ -18,16 +18,25 @@
     <script>
       (function recoverFromStaleChunks() {
         var RETRY_KEY = 'classiccar-chunk-retry'
+        var RETRY_PARAM = '_cc_reload'
+        var REASON_PARAM = '_cc_reason'
+        var hasRetriedInMemory = false
 
         function hasRetried() {
+          if (hasRetriedInMemory) return true
           try {
             return sessionStorage.getItem(RETRY_KEY) === '1'
           } catch (error) {
-            return false
+            try {
+              return new URL(window.location.href).searchParams.has(RETRY_PARAM)
+            } catch (urlError) {
+              return false
+            }
           }
         }
 
         function markRetried() {
+          hasRetriedInMemory = true
           try {
             sessionStorage.setItem(RETRY_KEY, '1')
           } catch (error) {
@@ -35,22 +44,50 @@
           }
         }
 
+        function cleanupRetryParams() {
+          try {
+            var url = new URL(window.location.href)
+            if (!url.searchParams.has(RETRY_PARAM) && !url.searchParams.has(REASON_PARAM)) return
+            url.searchParams.delete(RETRY_PARAM)
+            url.searchParams.delete(REASON_PARAM)
+            window.history.replaceState(null, '', url.toString())
+          } catch (error) {
+            // Ignore URL parsing failures.
+          }
+        }
+
+        function isRecoverableAsset(target) {
+          if (!target || !(target instanceof HTMLElement)) return false
+
+          if (target.tagName === 'SCRIPT') {
+            return target.getAttribute('type') === 'module'
+          }
+
+          if (target.tagName === 'LINK') {
+            var rel = (target.getAttribute('rel') || '').toLowerCase()
+            return rel === 'modulepreload' || rel === 'stylesheet'
+          }
+
+          return false
+        }
+
         function forceRefresh(reason) {
           if (hasRetried()) return
           markRetried()
 
           var url = new URL(window.location.href)
-          url.searchParams.set('_cc_reload', Date.now().toString())
-          url.searchParams.set('_cc_reason', reason)
+          url.searchParams.set(RETRY_PARAM, Date.now().toString())
+          url.searchParams.set(REASON_PARAM, reason)
           window.location.replace(url.toString())
         }
+
+        cleanupRetryParams()
 
         window.addEventListener(
           'error',
           function (event) {
             var target = event.target
-            if (!target || !(target instanceof HTMLElement)) return
-            if (target.tagName === 'SCRIPT' || target.tagName === 'LINK') {
+            if (isRecoverableAsset(target)) {
               forceRefresh('asset-load-failed')
             }
           },
