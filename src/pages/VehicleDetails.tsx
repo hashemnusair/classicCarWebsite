@@ -9,7 +9,7 @@ import Button from '../components/ui/Button'
 import { getVehicleBySlug } from '../data/vehicles'
 import { getBranchForVehicle } from '../data/branches'
 import { useLanguage } from '../context/LanguageContext'
-import { canNativeShareFile, downloadBlob, getVehiclePdf, shareFile } from '../lib/pdf'
+import { canNativeShareFile, downloadBlob, getVehiclePdf, openBlobInNewTab, shareFile } from '../lib/pdf'
 import { trackTelemetry } from '../lib/telemetry'
 
 export default function VehicleDetails() {
@@ -92,7 +92,16 @@ export default function VehicleDetails() {
     if (isPdfBusy) return
     try {
       const { blob, filename } = await requestVehiclePdf('download')
-      downloadBlob(blob, filename)
+      const shouldAutoOpenOnDesktop = window.matchMedia('(pointer: fine)').matches
+        && window.matchMedia('(hover: hover)').matches
+
+      if (shouldAutoOpenOnDesktop) {
+        const opened = openBlobInNewTab(blob)
+        if (!opened) downloadBlob(blob, filename)
+      } else {
+        downloadBlob(blob, filename)
+      }
+
       setShowShare(false)
     } catch {
       // Error state is handled above.

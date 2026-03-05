@@ -68,6 +68,21 @@ export function downloadBlob(blob: Blob, filename: string) {
   URL.revokeObjectURL(url)
 }
 
+export function openBlobInNewTab(blob: Blob) {
+  const url = URL.createObjectURL(blob)
+  const opened = window.open(url, '_blank', 'noopener,noreferrer')
+  if (!opened) {
+    URL.revokeObjectURL(url)
+    return false
+  }
+
+  window.setTimeout(() => {
+    URL.revokeObjectURL(url)
+  }, 60_000)
+
+  return true
+}
+
 export function canNativeShareFile(file: File) {
   if (typeof navigator === 'undefined' || typeof navigator.share !== 'function') return false
   if (typeof navigator.canShare !== 'function') return false
