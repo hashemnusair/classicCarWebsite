@@ -13,6 +13,7 @@ import {
 } from '../../config/performance'
 import { useIsMobilePerformanceMode } from '../../hooks/useIsMobilePerformanceMode'
 import { trackTelemetry } from '../../lib/telemetry'
+import { isLikelyIOSSafari } from '../../lib/browser'
 
 const HERO_VIDEO_WEBM = '/media/hero/variants/hero-mobile-tiny.webm'
 const HERO_VIDEO_MP4 = '/media/hero/variants/hero-mobile-tiny.mp4'
@@ -39,17 +40,6 @@ const canLoadMobileVideo = () => {
   if (!connection) return true
   if (connection.saveData) return false
   return !['slow-2g', '2g', '3g'].includes(connection.effectiveType ?? '')
-}
-
-const isLikelyIOSSafari = () => {
-  if (typeof navigator === 'undefined') return false
-
-  const userAgent = navigator.userAgent
-  const isIOS = /iP(ad|hone|od)/.test(userAgent) ||
-    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
-  const isWebKit = /WebKit/.test(userAgent) && !/CriOS|FxiOS|EdgiOS|OPiOS/.test(userAgent)
-
-  return isIOS && isWebKit
 }
 
 export default function Hero() {
@@ -259,7 +249,8 @@ export default function Hero() {
   const mobileY = useTransform(scrollYProgress, [0, 0.6], [0, 60])
   const mobileScale = useTransform(scrollYProgress, [0, 1], [1, 1.05])
 
-  const shouldAnimateMobile = isMobilePortrait && !prefersReducedMotion
+  const shouldAnimateMobile = isMobilePortrait && !prefersReducedMotion && !isMobilePerformanceMode && !isIosWebKit
+  const shouldRenderHeavyBackground = !isMobilePerformanceMode && !isIosWebKit
   const isVideoPlaying = playbackState === 'playing'
 
   return (
@@ -274,9 +265,13 @@ export default function Hero() {
         className="absolute inset-0"
       >
         <div className="absolute inset-0 bg-gradient-to-br from-cc-black via-cc-black-800 to-cc-black" />
-        <div className="absolute -top-1/4 -right-1/4 w-[800px] h-[800px] rounded-full bg-cc-red/[0.04] blur-[150px]" />
-        <div className="absolute -bottom-1/4 -left-1/4 w-[600px] h-[600px] rounded-full bg-cc-red/[0.02] blur-[120px]" />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[1000px] h-[400px] bg-cc-red/[0.01] blur-[200px] rounded-full" />
+        {shouldRenderHeavyBackground && (
+          <>
+            <div className="absolute -top-1/4 -right-1/4 w-[800px] h-[800px] rounded-full bg-cc-red/[0.04] blur-[150px]" />
+            <div className="absolute -bottom-1/4 -left-1/4 w-[600px] h-[600px] rounded-full bg-cc-red/[0.02] blur-[120px]" />
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[1000px] h-[400px] bg-cc-red/[0.01] blur-[200px] rounded-full" />
+          </>
+        )}
         <div className="absolute inset-0 grid-pattern opacity-40" />
 
         {/* Full-bleed mobile video background */}

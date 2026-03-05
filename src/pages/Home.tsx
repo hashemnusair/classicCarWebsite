@@ -1,11 +1,13 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import Hero from '../components/home/Hero'
 import FeaturedInventory from '../components/home/FeaturedInventory'
 import BrandProof from '../components/home/BrandProof'
 import { INVENTORY_PREFETCH_IDLE_TIMEOUT_MS } from '../config/performance'
+import { isLikelyIOSSafari } from '../lib/browser'
 
 function canPrefetchInventory() {
   if (typeof navigator === 'undefined') return false
+  if (isLikelyIOSSafari()) return false
 
   const connection = (
     navigator as Navigator & {
@@ -22,6 +24,29 @@ function canPrefetchInventory() {
 }
 
 export default function Home() {
+  const [showBelowFoldSections, setShowBelowFoldSections] = useState(() => !isLikelyIOSSafari())
+
+  useEffect(() => {
+    if (showBelowFoldSections) return
+
+    let timeoutId: number | undefined
+    let idleCallbackId: number | undefined
+    const revealSections = () => setShowBelowFoldSections(true)
+
+    if (typeof window.requestIdleCallback === 'function') {
+      idleCallbackId = window.requestIdleCallback(revealSections, { timeout: 800 })
+    } else {
+      timeoutId = window.setTimeout(revealSections, 250)
+    }
+
+    return () => {
+      if (timeoutId !== undefined) window.clearTimeout(timeoutId)
+      if (idleCallbackId !== undefined && typeof window.cancelIdleCallback === 'function') {
+        window.cancelIdleCallback(idleCallbackId)
+      }
+    }
+  }, [showBelowFoldSections])
+
   useEffect(() => {
     if (!canPrefetchInventory()) return
 
@@ -74,8 +99,12 @@ export default function Home() {
   return (
     <>
       <Hero />
-      <FeaturedInventory />
-      <BrandProof />
+      {showBelowFoldSections && (
+        <>
+          <FeaturedInventory />
+          <BrandProof />
+        </>
+      )}
     </>
   )
 }
